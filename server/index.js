@@ -137,7 +137,9 @@ app.post('/api/extract-url', async (req, res) => {
             noCheckCertificates: true,
             noWarnings: true,
             noPlaylist: true,
-            preferFreeFormats: true,
+            noPlaylist: true,
+            format: 'bestaudio/best', // Force best audio format
+            forceOverwrites: true,
             cookies: hasCookies ? cookiesPath : undefined, 
             addHeader: [
                 'referer:https://suno.com/',
