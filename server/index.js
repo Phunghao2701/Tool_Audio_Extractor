@@ -157,19 +157,19 @@ app.post('/api/extract-url', async (req, res) => {
             audioFormat: 'mp3',
             audioQuality: bitrate === '320k' ? '0' : bitrate === '192k' ? '3' : '5',
             output: outputPath,
-            ffmpegLocation: ffmpegStatic,
+            // Use system ffmpeg instead of static for better ffprobe compatibility
+            ffmpegLocation: fs.existsSync('/usr/bin/ffmpeg') ? '/usr/bin/ffmpeg' : ffmpegStatic,
             noCheckCertificates: true,
             noWarnings: true,
             noPlaylist: true,
             forceOverwrites: true,
             cookies: finalCookiesPath,
             addHeader: commonHeaders,
-            // 1. Force IPv4 as YouTube often flags Data Center IPv6 more aggressively
             forceIpv4: true,
-            // 2. Expand format selection to ensure we catch ANY available audio stream
-            format: 'bestaudio/best',
-            // 3. Use Android client which is currently the most robust against bot detection
-            extractorArgs: 'youtube:player-client=android,mweb,web'
+            // Only apply YouTube specific args if it's a YouTube link
+            extractorArgs: url.includes('youtube.com') ? 'youtube:player-client=android,mweb,web' : undefined,
+            // For non-YouTube sites, let yt-dlp pick the best format automatically
+            format: url.includes('youtube.com') ? 'bestaudio/best' : undefined
         });
 
         // Send the file to the client for download
