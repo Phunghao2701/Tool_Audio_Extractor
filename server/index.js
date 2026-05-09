@@ -152,12 +152,14 @@ app.post('/api/extract-url', async (req, res) => {
             cleanCookie ? `Cookie:${cleanCookie}` : undefined
         ].filter(Boolean);
 
+        const isTikTok = url.includes('tiktok.com');
+        const tempVideoPath = isTikTok ? outputPath.replace('.mp3', '.mp4') : null;
+
         await ytRunner(targetUrl, {
-            extractAudio: true,
+            extractAudio: !isTikTok, // Don't extract for TikTok, we'll do it manually
             audioFormat: 'mp3',
             audioQuality: bitrate === '320k' ? '0' : bitrate === '192k' ? '3' : '5',
-            output: outputPath,
-            // Use system ffmpeg instead of static for better ffprobe compatibility
+            output: isTikTok ? tempVideoPath : outputPath,
             ffmpegLocation: fs.existsSync('/usr/bin/ffmpeg') ? '/usr/bin/ffmpeg' : ffmpegStatic,
             noCheckCertificates: true,
             noWarnings: true,
@@ -166,17 +168,31 @@ app.post('/api/extract-url', async (req, res) => {
             cookies: finalCookiesPath,
             addHeader: commonHeaders,
             forceIpv4: true,
-            // Only apply YouTube specific args if it's a YouTube link
             extractorArgs: url.includes('youtube.com') ? 'youtube:player-client=android,mweb,web' : undefined,
-            // For non-YouTube sites, let yt-dlp pick the best format automatically
-            format: url.includes('youtube.com') ? 'bestaudio/best' : undefined
+            format: url.includes('youtube.com') ? 'bestaudio/best' : 'best'
         });
+
+        // Manual extraction for TikTok to bypass ffprobe codec errors
+        if (isTikTok && fs.existsSync(tempVideoPath)) {
+            console.log('Performing manual FFmpeg extraction for TikTok...');
+            await new Promise((resolve, reject) => {
+                ffmpeg(tempVideoPath)
+                    .toFormat('mp3')
+                    .audioBitrate(parseInt(bitrate))
+                    .on('end', () => {
+                        fs.unlink(tempVideoPath, () => {}); // Clean up temp video
+                        resolve();
+                    })
+                    .on('error', (err) => {
+                        reject(err);
+                    })
+                    .save(outputPath);
+            });
+        }
 
         // Send the file to the client for download
         res.download(outputPath, (err) => {
             if (err) console.error('Download error:', err);
-            // Optional: delete file after download to save space
-            // fs.unlink(outputPath, () => {});
         });
     } catch (error) {
         console.error('Extraction error:', error);
