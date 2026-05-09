@@ -132,23 +132,21 @@ app.post('/api/extract-url', async (req, res) => {
 
         await exec(targetUrl, {
             extractAudio: true,
-    audioFormat: 'mp3',
-    // yt-dlp dùng thang điểm 0 (tốt nhất) đến 9 (tệ nhất)
-    audioQuality: quality === 'high' ? '0' : quality === 'medium' ? '3' : '5',
-    output: outputPath,
-    noCheckCertificates: true,
-    noWarnings: true,
-    noPlaylist: true,
-    forceOverwrites: true,
-    // QUAN TRỌNG: Thêm tham số này để yt-dlp tự chọn stream tốt nhất và convert
-    format: 'bestaudio/best', 
-    // Nếu vẫn lỗi, hãy thử XÓA dòng format ở trên và chỉ để extractAudio
-    
-    cookies: hasCookies ? cookiesPath : undefined,
+            audioFormat: 'mp3',
+            audioQuality: bitrate === '320k' ? '0' : bitrate === '192k' ? '3' : '5',
+            output: outputPath,
+            ffmpegLocation: ffmpegStatic,
+            noCheckCertificates: true,
+            noWarnings: true,
+            noPlaylist: true,
+            forceOverwrites: true,
+            binaryPath: ytDlpPath,
+            cookies: hasCookies ? cookiesPath : undefined,
             addHeader: [
                 `referer:${url.includes('youtube.com') ? 'https://www.youtube.com/' : 'https://suno.com/'}`,
-                'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-            ]
+                'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                process.env.YOUTUBE_COOKIE ? `Cookie:${process.env.YOUTUBE_COOKIE}` : undefined
+            ].filter(Boolean)
         });
 
         // Send the file to the client for download
