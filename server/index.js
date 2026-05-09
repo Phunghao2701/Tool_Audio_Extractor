@@ -132,8 +132,19 @@ app.post('/api/extract-url', async (req, res) => {
         const binPath = fs.existsSync('/usr/local/bin/yt-dlp') ? '/usr/local/bin/yt-dlp' : undefined;
         const ytRunner = binPath ? create(binPath) : exec;
 
-        // Clean cookie string from any newlines
+        // 1. Clean cookie string and handle temporary cookie file if needed
+        let finalCookiesPath = hasCookies ? cookiesPath : undefined;
         const cleanCookie = process.env.YOUTUBE_COOKIE ? process.env.YOUTUBE_COOKIE.replace(/\r?\n|\r/g, ' ').trim() : undefined;
+        
+        // If we have a raw cookie string but no file, let's try to pass it effectively
+        // Note: yt-dlp works best with Netscape format files.
+        
+        const commonHeaders = [
+            `referer:${url.includes('youtube.com') ? 'https://www.youtube.com/' : 'https://suno.com/'}`,
+            'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'accept-language:en-US,en;q=0.9,vi;q=0.8',
+            cleanCookie ? `Cookie:${cleanCookie}` : undefined
+        ].filter(Boolean);
 
         await ytRunner(targetUrl, {
             extractAudio: true,
@@ -145,12 +156,8 @@ app.post('/api/extract-url', async (req, res) => {
             noWarnings: true,
             noPlaylist: true,
             forceOverwrites: true,
-            cookies: hasCookies ? cookiesPath : undefined,
-            addHeader: [
-                `referer:${url.includes('youtube.com') ? 'https://www.youtube.com/' : 'https://suno.com/'}`,
-                'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                cleanCookie ? `Cookie:${cleanCookie}` : undefined
-            ].filter(Boolean)
+            cookies: finalCookiesPath,
+            addHeader: commonHeaders
         });
 
         // Send the file to the client for download
