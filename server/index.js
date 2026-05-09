@@ -8,8 +8,10 @@ const { exec } = require('yt-dlp-exec');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegStatic = require('ffmpeg-static');
 
-// Configure FFmpeg to use the static binary provided by ffmpeg-static
-ffmpeg.setFfmpegPath(ffmpegStatic);
+// Configure FFmpeg to use the system binary if available, otherwise fallback to static
+const systemFfmpeg = '/usr/bin/ffmpeg';
+const ffmpegPath = fs.existsSync(systemFfmpeg) ? systemFfmpeg : ffmpegStatic;
+ffmpeg.setFfmpegPath(ffmpegPath);
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -181,16 +183,23 @@ app.post('/api/extract-url', async (req, res) => {
 
         // Manual extraction for TikTok to bypass ffprobe codec errors
         if (isTikTok && fs.existsSync(tempVideoPath)) {
-            console.log('Performing manual FFmpeg extraction for TikTok...');
+            console.log(`Performing manual FFmpeg extraction for TikTok: ${tempVideoPath} -> ${outputPath}`);
             await new Promise((resolve, reject) => {
                 ffmpeg(tempVideoPath)
-                    .toFormat('mp3')
-                    .audioBitrate(parseInt(bitrate))
+                    .noVideo()
+                    .audioCodec('libmp3lame')
+                    .audioBitrate(bitrate) // Supports '320k' string directly
+                    .on('start', (commandLine) => {
+                        console.log('Spawned Ffmpeg with command: ' + commandLine);
+                    })
                     .on('end', () => {
+                        console.log('Manual extraction finished');
                         fs.unlink(tempVideoPath, () => {}); // Clean up temp video
                         resolve();
                     })
-                    .on('error', (err) => {
+                    .on('error', (err, stdout, stderr) => {
+                        console.error('Manual extraction error:', err.message);
+                        console.error('Ffmpeg stderr:', stderr);
                         reject(err);
                     })
                     .save(outputPath);
