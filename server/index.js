@@ -132,12 +132,18 @@ app.post('/api/extract-url', async (req, res) => {
         const binPath = fs.existsSync('/usr/local/bin/yt-dlp') ? '/usr/local/bin/yt-dlp' : undefined;
         const ytRunner = binPath ? create(binPath) : exec;
 
-        // 1. Clean cookie string and handle temporary cookie file if needed
+        // 1. Clean the URL (remove playlist params from YouTube to avoid restricted formats)
+        if (targetUrl.includes('youtube.com/watch')) {
+            const urlObj = new URL(targetUrl);
+            const videoId = urlObj.searchParams.get('v');
+            if (videoId) {
+                targetUrl = `https://www.youtube.com/watch?v=${videoId}`;
+            }
+        }
+
+        // 2. Clean cookie string and handle temporary cookie file if needed
         let finalCookiesPath = hasCookies ? cookiesPath : undefined;
         const cleanCookie = process.env.YOUTUBE_COOKIE ? process.env.YOUTUBE_COOKIE.replace(/\r?\n|\r/g, ' ').trim() : undefined;
-        
-        // If we have a raw cookie string but no file, let's try to pass it effectively
-        // Note: yt-dlp works best with Netscape format files.
         
         const commonHeaders = [
             `referer:${url.includes('youtube.com') ? 'https://www.youtube.com/' : 'https://suno.com/'}`,
@@ -157,7 +163,9 @@ app.post('/api/extract-url', async (req, res) => {
             noPlaylist: true,
             forceOverwrites: true,
             cookies: finalCookiesPath,
-            addHeader: commonHeaders
+            addHeader: commonHeaders,
+            // MAGIC PARAMETER: Force yt-dlp to try multiple clients to find the audio stream
+            extractorArgs: 'youtube:player-client=ios,web,mweb'
         });
 
         // Send the file to the client for download
