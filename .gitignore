@@ -1,0 +1,23 @@
+# Dependencies
+node_modules
+client/node_modules
+server/node_modules
+
+# Build outputs
+client/dist
+
+# Temporary files
+server/uploads/*
+server/output/*
+!server/uploads/.gitkeep
+!server/output/.gitkeep
+
+# Sensitive data (CRITICAL)
+cookies.txt
+server/cookies.txt
+*.env
+
+# System files
+.DS_Store
+Thumbs.db
+*.log
