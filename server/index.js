@@ -185,10 +185,14 @@ app.post('/api/extract-url', async (req, res) => {
         if (isTikTok && fs.existsSync(tempVideoPath)) {
             console.log(`Performing manual FFmpeg extraction for TikTok: ${tempVideoPath} -> ${outputPath}`);
             await new Promise((resolve, reject) => {
+                // Ensure bitrate is treated as kbps (e.g., 320k)
+                const safeBitrate = bitrate.endsWith('k') ? bitrate : `${bitrate}k`;
+                
                 ffmpeg(tempVideoPath)
                     .noVideo()
-                    .audioCodec('libmp3lame')
-                    .audioBitrate(bitrate) // Supports '320k' string directly
+                    .toFormat('mp3')
+                    .audioBitrate(safeBitrate)
+                    .outputOptions('-id3v2_version', '3') // Better metadata compatibility
                     .on('start', (commandLine) => {
                         console.log('Spawned Ffmpeg with command: ' + commandLine);
                     })
