@@ -142,8 +142,8 @@ app.post('/api/extract-url', async (req, res) => {
             forceOverwrites: true,
             cookies: hasCookies ? cookiesPath : undefined, 
             addHeader: [
-                'referer:https://suno.com/',
-                'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                `referer:${url.includes('youtube.com') ? 'https://www.youtube.com/' : 'https://suno.com/'}`,
+                'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
             ]
         });
 
