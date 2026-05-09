@@ -138,7 +138,7 @@ app.post('/api/extract-url', async (req, res) => {
             noWarnings: true,
             noPlaylist: true,
             preferFreeFormats: true,
-            cookie: hasCookies ? cookiesPath : undefined, // Add cookies if available
+            cookies: hasCookies ? cookiesPath : undefined, // Corrected parameter name
             addHeader: [
                 'referer:https://suno.com/',
                 'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
