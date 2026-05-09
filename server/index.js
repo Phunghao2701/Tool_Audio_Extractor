@@ -127,19 +127,20 @@ app.post('/api/extract-url', async (req, res) => {
         console.log(`Extracting from URL: ${targetUrl} at ${bitrate}`);
         
         // Execute yt-dlp to extract audio
+        // We use the system-installed yt-dlp if available for better compatibility
+        const ytDlpPath = fs.existsSync('/usr/local/bin/yt-dlp') ? '/usr/local/bin/yt-dlp' : undefined;
+
         await exec(targetUrl, {
             extractAudio: true,
             audioFormat: 'mp3',
-            // yt-dlp audio quality: 0 is best, 9 is worst. We map high(0), medium(3), low(5)
             audioQuality: bitrate === '320k' ? '0' : bitrate === '192k' ? '3' : '5',
             output: outputPath,
             ffmpegLocation: ffmpegStatic,
             noCheckCertificates: true,
             noWarnings: true,
             noPlaylist: true,
-            noPlaylist: true,
-            format: 'bestaudio/best', // Force best audio format
             forceOverwrites: true,
+            binaryPath: ytDlpPath, // Use system yt-dlp if it exists
             cookies: hasCookies ? cookiesPath : undefined, 
             addHeader: [
                 `referer:${url.includes('youtube.com') ? 'https://www.youtube.com/' : 'https://suno.com/'}`,
