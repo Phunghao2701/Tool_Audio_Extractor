@@ -106,8 +106,23 @@ app.post('/api/extract-url', async (req, res) => {
             }
         }
 
-        const cookiesPath = path.join(__dirname, 'cookies.txt');
-        const hasCookies = fs.existsSync(cookiesPath);
+        // Check for cookies in multiple locations (Render puts it in root, Local in /server)
+        const possibleCookies = [
+            path.join(__dirname, 'cookies.txt'),
+            path.join(__dirname, '../cookies.txt'),
+            '/etc/secrets/cookies.txt' // Render default secret path
+        ];
+        
+        let cookiesPath = null;
+        for (const p of possibleCookies) {
+            if (fs.existsSync(p)) {
+                cookiesPath = p;
+                console.log(`Found cookies at: ${p}`);
+                break;
+            }
+        }
+
+        const hasCookies = !!cookiesPath;
 
         console.log(`Extracting from URL: ${targetUrl} at ${bitrate}`);
         
