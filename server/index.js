@@ -164,8 +164,12 @@ app.post('/api/extract-url', async (req, res) => {
             forceOverwrites: true,
             cookies: finalCookiesPath,
             addHeader: commonHeaders,
-            // MAGIC PARAMETER: Force yt-dlp to try multiple clients to find the audio stream
-            extractorArgs: 'youtube:player-client=ios,web,mweb'
+            // 1. Force IPv4 as YouTube often flags Data Center IPv6 more aggressively
+            forceIpv4: true,
+            // 2. Expand format selection to ensure we catch ANY available audio stream
+            format: 'bestaudio/best',
+            // 3. Use Android client which is currently the most robust against bot detection
+            extractorArgs: 'youtube:player-client=android,mweb,web'
         });
 
         // Send the file to the client for download
