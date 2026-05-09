@@ -155,10 +155,8 @@ app.post('/api/extract-url', async (req, res) => {
         const isTikTok = url.includes('tiktok.com');
         const tempVideoPath = isTikTok ? outputPath.replace('.mp3', '.mp4') : null;
 
-        await ytRunner(targetUrl, {
-            extractAudio: !isTikTok, // Don't extract for TikTok, we'll do it manually
-            audioFormat: 'mp3',
-            audioQuality: bitrate === '320k' ? '0' : bitrate === '192k' ? '3' : '5',
+        // Base options for both YouTube and TikTok
+        const ytOptions = {
             output: isTikTok ? tempVideoPath : outputPath,
             ffmpegLocation: fs.existsSync('/usr/bin/ffmpeg') ? '/usr/bin/ffmpeg' : ffmpegStatic,
             noCheckCertificates: true,
@@ -168,9 +166,18 @@ app.post('/api/extract-url', async (req, res) => {
             cookies: finalCookiesPath,
             addHeader: commonHeaders,
             forceIpv4: true,
-            extractorArgs: url.includes('youtube.com') ? 'youtube:player-client=android,mweb,web' : undefined,
             format: url.includes('youtube.com') ? 'bestaudio/best' : 'best'
-        });
+        };
+
+        // Add audio extraction options only if NOT TikTok
+        if (!isTikTok) {
+            ytOptions.extractAudio = true;
+            ytOptions.audioFormat = 'mp3';
+            ytOptions.audioQuality = bitrate === '320k' ? '0' : bitrate === '192k' ? '3' : '5';
+            ytOptions.extractorArgs = url.includes('youtube.com') ? 'youtube:player-client=android,mweb,web' : undefined;
+        }
+
+        await ytRunner(targetUrl, ytOptions);
 
         // Manual extraction for TikTok to bypass ffprobe codec errors
         if (isTikTok && fs.existsSync(tempVideoPath)) {
