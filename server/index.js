@@ -128,9 +128,14 @@ app.post('/api/extract-url', async (req, res) => {
         
         // Execute yt-dlp to extract audio
         // We use the system-installed yt-dlp if available for better compatibility
-        const ytDlpPath = fs.existsSync('/usr/local/bin/yt-dlp') ? '/usr/local/bin/yt-dlp' : undefined;
+        const { create } = require('yt-dlp-exec');
+        const binPath = fs.existsSync('/usr/local/bin/yt-dlp') ? '/usr/local/bin/yt-dlp' : undefined;
+        const ytRunner = binPath ? create(binPath) : exec;
 
-        await exec(targetUrl, {
+        // Clean cookie string from any newlines
+        const cleanCookie = process.env.YOUTUBE_COOKIE ? process.env.YOUTUBE_COOKIE.replace(/\r?\n|\r/g, ' ').trim() : undefined;
+
+        await ytRunner(targetUrl, {
             extractAudio: true,
             audioFormat: 'mp3',
             audioQuality: bitrate === '320k' ? '0' : bitrate === '192k' ? '3' : '5',
@@ -140,12 +145,11 @@ app.post('/api/extract-url', async (req, res) => {
             noWarnings: true,
             noPlaylist: true,
             forceOverwrites: true,
-            binaryPath: ytDlpPath,
             cookies: hasCookies ? cookiesPath : undefined,
             addHeader: [
                 `referer:${url.includes('youtube.com') ? 'https://www.youtube.com/' : 'https://suno.com/'}`,
                 'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                process.env.YOUTUBE_COOKIE ? `Cookie:${process.env.YOUTUBE_COOKIE}` : undefined
+                cleanCookie ? `Cookie:${cleanCookie}` : undefined
             ].filter(Boolean)
         });
 
